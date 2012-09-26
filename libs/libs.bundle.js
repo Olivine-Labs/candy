@@ -721,7 +721,7 @@ Strophe = {
      *  The version of the Strophe library. Unreleased builds will have
      *  a version of head-HASH where HASH is a partial revision.
      */
-    VERSION: "35a819c",
+    VERSION: "c0519b5",
 
     /** Constants: XMPP Namespace Constants
      *  Common namespace constants from the XMPP RFCs and XEPs.
@@ -967,11 +967,7 @@ Strophe = {
     _makeGenerator: function () {
         var doc;
 
-        // IE9 does implement createDocument(); however, using it will cause the browser to leak memory on page unload.
-        // Here, we test for presence of createDocument() plus IE's proprietary documentMode attribute, which would be 
-		// less than 10 in the case of IE9 and below.
-        if (document.implementation.createDocument === undefined || 
-			document.implementation.createDocument && document.documentMode && document.documentMode < 10) {
+        if (document.implementation.createDocument === undefined) {
             doc = this._getIEXmlDom();
             doc.appendChild(doc.createElement('strophe'));
         } else {
@@ -1531,7 +1527,7 @@ Strophe = {
                     break;
                   case Strophe.ElementType.TEXT:
                     // text element to escape values
-                    result += child.nodeValue;
+                    result += Strophe.xmlescape(child.nodeValue);
                     break;
                   case Strophe.ElementType.CDATA:
                     // cdata section so don't escape values
@@ -2952,9 +2948,8 @@ Strophe.Connection.prototype = {
                           "." + req.sends + " posting");
 
             try {
-				var async = !('sync' in this && this.sync === true);
-				req.xhr.open("POST", this.service, async);
-			} catch (e2) {
+                req.xhr.open("POST", this.service, true);
+            } catch (e2) {
                 Strophe.error("XHR open failed.");
                 if (!this.connected) {
                     this._changeConnectStatus(Strophe.Status.CONNFAIL,
@@ -3498,9 +3493,9 @@ Strophe.Connection.prototype = {
         } else if (this._authentication.sasl_plain) {
             // Build the plain auth string (barejid null
             // username null password) and base 64 encoded.
-            auth_str = unescape(encodeURIComponent(Strophe.getBareJidFromJid(this.jid)));
+            auth_str = Strophe.getBareJidFromJid(this.jid);
             auth_str = auth_str + "\u0000";
-            auth_str = auth_str + unescape(encodeURIComponent(Strophe.getNodeFromJid(this.jid)));
+            auth_str = auth_str + Strophe.getNodeFromJid(this.jid);
             auth_str = auth_str + "\u0000";
             auth_str = auth_str + this.pass;
 
@@ -3581,14 +3576,14 @@ Strophe.Connection.prototype = {
             digest_uri = digest_uri + "/" + host;
         }
 
-        var A1 = MD5.hash(unescape(encodeURIComponent(Strophe.getNodeFromJid(this.jid))) +
+        var A1 = MD5.hash(Strophe.getNodeFromJid(this.jid) +
                           ":" + realm + ":" + this.pass) +
             ":" + nonce + ":" + cnonce;
         var A2 = 'AUTHENTICATE:' + digest_uri;
 
         var responseText = "";
         responseText += 'username=' +
-            this._quote(unescape(encodeURIComponent(Strophe.getNodeFromJid(this.jid)))) + ',';
+            this._quote(Strophe.getNodeFromJid(this.jid)) + ',';
         responseText += 'realm=' + this._quote(realm) + ',';
         responseText += 'nonce=' + this._quote(nonce) + ',';
         responseText += 'cnonce=' + this._quote(cnonce) + ',';

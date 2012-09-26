@@ -7,6 +7,7 @@
  *
  * Copyright:
  *   (c) 2011 Amiado Group AG. All rights reserved.
+ *   (c) 2012 Patrick Stadler & Michael Weibel. All rights reserved.
  */
 
 /** Class: Candy.Core.Event
@@ -16,35 +17,8 @@
  *   (Candy.Core.Event) self - itself
  *   (Strophe) Strophe - Strophe
  *   (jQuery) $ - jQuery
- *   (Candy.Util.Observable) observable - Observable to mixin
  */
-Candy.Core.Event = (function(self, Strophe, $, observable) {
-	/**
-	 * Mixin observable
-	 */
-	var i;
-	for (i in observable) {
-		if (observable.hasOwnProperty(i)) {
-			self[i] = observable[i];
-		}
-	}
-
-	/** Enum: KEYS
-	 * Observer keys
-	 *
-	 * CHAT - Chat events
-	 * PRESENCE - Presence events
-	 * MESSAGE - Message events
-	 * LOGIN - Login event
-	 */
-	self.KEYS = {
-		CHAT: 1,
-		PRESENCE: 2,
-		MESSAGE: 3,
-		LOGIN: 4,
-		PRESENCE_ERROR: 5
-	};
-
+Candy.Core.Event = (function(self, Strophe, $) {
 	/** Class: Candy.Core.Event.Strophe
 	 * Strophe-related events
 	 */
@@ -99,7 +73,7 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 					break;
 			}
 
-			self.notifyObservers(self.KEYS.CHAT, { type: 'connection', status: status } );
+			$(self).triggerHandler('candy:core.chat.connection', { status: status } );
 		}
 	};
 
@@ -110,7 +84,7 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 	 *   (String) presetJid - Preset user JID
 	 */
 	self.Login = function(presetJid) {
-		self.notifyObservers(self.KEYS.LOGIN, { presetJid: presetJid } );
+	    $(self).triggerHandler('candy:core.login', { presetJid: presetJid } );
 	};
 
 	/** Class: Candy.Core.Event.Jabber
@@ -151,7 +125,7 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 					self.Jabber.Room.Presence(msg);
 				}
 			} else {
-				self.notifyObservers(self.KEYS.PRESENCE, {'from': msg.attr('from'), 'stanza': msg});
+				$(self).triggerHandler('candy:core.presence', {'from': msg.attr('from'), 'stanza': msg});
 			}
 			return true;
 		},
@@ -243,10 +217,10 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 				self.Jabber.Room.Message(msg);
 			// Admin message
 			} else if(!toJid && fromJid === Strophe.getDomainFromJid(fromJid)) {
-				self.notifyObservers(self.KEYS.CHAT, { type: (type || 'message'), message: msg.children('body').text() });
+				$(self).triggerHandler('candy:core.chat.message', { type: (type || 'message'), message: msg.children('body').text() });
 			// Server Message
 			} else if(toJid && fromJid === Strophe.getDomainFromJid(fromJid)) {
-				self.notifyObservers(self.KEYS.CHAT, { type: (type || 'message'), subject: msg.children('subject').text(), message: msg.children('body').text() });
+				$(self).triggerHandler('candy:core.chat.message', { type: (type || 'message'), subject: msg.children('subject').text(), message: msg.children('body').text() });
 			}
 			return true;
 		},
@@ -295,7 +269,7 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 
 				var user = new Candy.Core.ChatUser(from, Strophe.getResourceFromJid(from), item.attr('affiliation'), item.attr('role'));
 
-				self.notifyObservers(self.KEYS.PRESENCE, { 'roomJid': roomJid, 'roomName': roomName, 'type': type, 'reason': reason, 'actor': actor, 'user': user } );
+				$(self).triggerHandler('candy:core.presence', { 'roomJid': roomJid, 'roomName': roomName, 'type': type, 'reason': reason, 'actor': actor, 'user': user } );
 				return true;
 			},
 
@@ -384,7 +358,7 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 					roster.remove(from);
 				}
 
-				self.notifyObservers(self.KEYS.PRESENCE, {'roomJid': roomJid, 'roomName': room.getName(), 'user': user, 'action': action, 'currentUser': Candy.Core.getUser() } );
+				$(self).triggerHandler('candy:core.presence', {'roomJid': roomJid, 'roomName': room.getName(), 'user': user, 'action': action, 'currentUser': Candy.Core.getUser() } );
 				return true;
 			},
 			
@@ -407,7 +381,7 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 				// Presence error: Remove room from array to prevent error when disconnecting
 				delete room;
 				
-				self.notifyObservers(self.KEYS.PRESENCE_ERROR, {'msg' : msg, 'type': msg.children('error').children()[0].tagName.toLowerCase(), 'roomJid': roomJid, 'roomName': roomName});
+				$(self).triggerHandler('candy:core.presence.error', {'msg' : msg, 'type': msg.children('error').children()[0].tagName.toLowerCase(), 'roomJid': roomJid, 'roomName': roomName});
 			},
 
 			/** Function: Message
@@ -471,11 +445,11 @@ Candy.Core.Event = (function(self, Strophe, $, observable) {
 				var delay = msg.children('delay') ? msg.children('delay') : msg.children('x[xmlns="' + Strophe.NS.DELAY +'"]'),
 					timestamp = delay !== undefined ? delay.attr('stamp') : null;
 
-				self.notifyObservers(self.KEYS.MESSAGE, {roomJid: roomJid, message: message, timestamp: timestamp, stanza: msg } );
+				$(self).triggerHandler('candy:core.message', {roomJid: roomJid, message: message, timestamp: timestamp });
 				return true;
 			}
 		}
 	};
 
 	return self;
-}(Candy.Core.Event || {}, Strophe, jQuery, Candy.Util.Observable));
+}(Candy.Core.Event || {}, Strophe, jQuery));
