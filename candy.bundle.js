@@ -4346,7 +4346,7 @@ Candy.View.Pane = (function(self, $) {
 			}
 			
 			var renderEvtData = {
-				template: Candy.View.Template.Message.item,
+        template: evtData.template || Candy.View.Template.Message.item,
 				templateData: {
 					name: name,
 					displayName: Candy.Util.crop(name, Candy.View.getOptions().crop.message.nickname),
